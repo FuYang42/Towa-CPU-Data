@@ -1,14 +1,10 @@
 # Towa-CPU-Data
 
-[English](#english) | [中文](#中文)
-
-## 中文
-
-### 项目简介
+## 项目简介
 
 本项目用于分析从 MMT (Multi-Modal Transport) 传输出来的数据包中的后 24 字节数据，以此来分析和监控 CPU 的使用率。
 
-### ⚡ 快速使用（一条命令搞定）
+### 快速使用
 
 ```bash
 # 方式 1: 生成 CSV 文件（推荐，无需安装任何库）
@@ -18,13 +14,6 @@ python3 pcap2excel.py cpu_usage.pcap --csv
 pip install openpyxl
 python3 pcap2excel.py cpu_usage.pcap
 ```
-
-**就这么简单！** 程序会自动：
-1. 读取 PCAP 文件
-2. 提取 CPU 使用率数据
-3. 生成 Excel/CSV 文件（包含 5 列数据）
-4. 自动创建图表（Excel 模式）
-5. 显示统计信息
 
 ### 输出文件格式
 
@@ -101,8 +90,6 @@ python3 export_to_excel.py cpu_usage.pcap cpu_usage_analysis.xlsx
 - CPU 使用率变化折线图
 - Busy/Idle 时间对比图表
 
-详细使用说明请参考 [EXCEL_GUIDE.md](EXCEL_GUIDE.md)
-
 ### 数据格式
 
 #### 输入数据
@@ -134,23 +121,6 @@ CPU 使用率 = (Busy 时间 / (Busy 时间 + Idle 时间)) × 100%
   - busy_time: Busy 时间
   - idle_time: Idle 时间
 
-### 项目结构
-
-```
-Towa-CPU-Data/
-├── pcap2excel.py             # ⭐ 主程序（推荐使用）
-├── README.md                 # 项目说明文档
-├── requirements.txt          # Python 依赖（仅 Excel 导出需要）
-├── cpu_usage.pcap            # 示例 PCAP 文件
-│
-├── analyze_pcap.py           # 高级工具：详细分析
-├── cpu_summary.py            # 高级工具：统计摘要
-├── export_to_csv.py          # 高级工具：CSV 导出
-├── export_to_excel.py        # 高级工具：Excel 导出
-├── EXCEL_GUIDE.md            # Excel 导出详细指南
-└── QUICKSTART.md             # 快速开始指南
-```
-
 ### 示例输出
 
 ```
@@ -168,76 +138,3 @@ CPU 使用率统计:
   3          1763684906.627803    32.75%
   ...
 ```
-
-### 贡献
-
-欢迎提交问题和拉取请求。
-
-### 许可证
-
-待定
-
----
-
-## English
-
-### Project Overview
-
-This project analyzes the last 24 bits of data packets transmitted from MMT (Multi-Modal Transport) to monitor and analyze CPU usage.
-
-### Features
-
-- Parse MMT data packets
-- Extract the last 24 bits from data packets
-- Analyze CPU usage
-- Generate usage reports
-
-### Quick Start
-
-#### Requirements
-
-- TBD (to be added based on development needs)
-
-#### Installation
-
-```bash
-git clone <repository-url>
-cd Towa-CPU-Data
-# Install dependencies (TBD)
-```
-
-#### Usage
-
-```bash
-# Run example (TBD)
-```
-
-### Data Format
-
-- **Input**: MMT data packets
-- **Analysis Target**: Last 24 bits of the packet
-- **Output**: CPU usage analysis results
-
-### Project Structure
-
-```
-Towa-CPU-Data/
-├── README.md          # Project documentation
-└── ...                # Source code files (TBD)
-```
-
-### Development Roadmap
-
-- [ ] Implement packet parser
-- [ ] Implement last 24-bit data extraction
-- [ ] Implement CPU usage calculation algorithm
-- [ ] Add data visualization
-- [ ] Write test cases
-
-### Contributing
-
-Issues and pull requests are welcome.
-
-### License
-
-TBD
