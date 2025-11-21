@@ -1,140 +1,107 @@
 # Towa-CPU-Data
 
-## 项目简介
+PCAP 文件 CPU 使用率分析工具
 
-本项目用于分析从 MMT (Multi-Modal Transport) 传输出来的数据包中的后 24 字节数据，以此来分析和监控 CPU 的使用率。
+## 快速开始
 
-### 快速使用
-
-```bash
-# 方式 1: 生成 CSV 文件（推荐，无需安装任何库）
-python3 pcap2excel.py cpu_usage.pcap --csv
-
-# 方式 2: 生成带图表的 Excel 文件（需要先安装 openpyxl）
-pip install openpyxl
-python3 pcap2excel.py cpu_usage.pcap
-```
-
-### 输出文件格式
-
-| Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
-|----------|----------|----------|----------|----------|
-| Number | CPU Usage% | Busy Time | Idle Time | Busy Time + Idle Time |
-
-### 环境要求
-
-- Python 3.6 或更高版本
-- CSV 模式：无需任何额外库
-- Excel 模式：需要 `pip install openpyxl`
-
----
-
-### 高级使用方法
-
-如果需要查看详细的数据包信息或进行深入分析：
-
-##### 1. 详细分析模式（查看前 N 个数据包的完整信息）
+### 基本用法
 
 ```bash
-# 分析前 10 个数据包（默认）
-python3 analyze_pcap.py cpu_usage.pcap
+# 分析所有数据包，生成 CSV 文件（推荐）
+python3 pcap2excel.py file_name.pcap --csv
 
-# 分析前 50 个数据包
-python3 analyze_pcap.py cpu_usage.pcap 50
+# 分析所有数据包，生成 Excel 文件（需要安装 openpyxl）
+python3 pcap2excel.py file_name.pcap
 ```
 
-输出内容包括：
-- 完整的网络协议层信息（以太网、IP、UDP）
-- 十六进制和 ASCII 格式的原始数据
-- 后 24 字节的 CPU 数据解析
-- Busy/Idle 时间和计算出的 CPU 使用率
-
-##### 2. 概览分析模式（分析所有数据包并生成统计）
+### 高级用法
 
 ```bash
-python3 cpu_summary.py cpu_usage.pcap
+# 只分析前 3 个数据包
+python3 pcap2excel.py file_name.pcap --count 3 --csv
+
+# 分析第 2 到第 5 个数据包
+python3 pcap2excel.py file_name.pcap --range 2 5 --csv
+
+# 指定输出文件名
+python3 pcap2excel.py file_name.pcap output.xlsx
 ```
 
-输出内容包括：
-- 所有数据包的 CPU 使用率统计（最小值、最大值、平均值、中位数）
-- 前 20 个和后 20 个数据包的 CPU 使用率列表
-- 自动导出 CSV 文件（包含所有数据包的 CPU 信息）
+## 环境要求
 
-##### 3. Excel 导出模式（生成包含图表的 Excel 文件）
-
-**方法 A：CSV 格式（推荐，无需额外依赖）**
+- Python 3.6+
+- CSV 模式：无需额外库
+- Excel 模式：需要安装 openpyxl
 
 ```bash
-python3 export_to_csv.py cpu_usage.pcap cpu_usage_analysis.csv
+# 安装 openpyxl（仅 Excel 模式需要）
+sudo apt install python3-pip
+pip3 install openpyxl
 ```
 
-生成的 CSV 文件可以直接在 Excel 中打开，包含以下列：
-- Column 1: Number（数据点编号）
-- Column 2: CPU Usage%（CPU 使用率）
-- Column 3: Busy Time（忙碌时间）
-- Column 4: Idle Time（空闲时间）
-- Column 5: Busy Time + Idle Time（总时间）
+## 输出格式
 
-**方法 B：自动生成 Excel 文件（需要安装 openpyxl）**
+生成的文件包含以下列：
 
-```bash
-# 先安装依赖
-pip install openpyxl
+| Column | 说明 |
+|--------|------|
+| Number | 数据点编号 |
+| CPU Usage% | CPU 使用率百分比 |
+| Busy Time | CPU 忙碌时间 |
+| Idle Time | CPU 空闲时间 |
+| Busy Time + Idle Time | 总时间 |
 
-# 运行导出
-python3 export_to_excel.py cpu_usage.pcap cpu_usage_analysis.xlsx
-```
+Excel 模式会自动生成两个图表：
+- CPU 使用率变化趋势图
+- Busy Time vs Idle Time 对比图
 
-自动生成包含以下内容的 Excel 文件：
-- 格式化的数据表格
-- CPU 使用率变化折线图
-- Busy/Idle 时间对比图表
+## 数据格式说明
 
-### 数据格式
+### 输入
+- 文件格式：PCAP (Packet Capture)
+- 协议：Ethernet → IPv4 → UDP
+- 过滤条件：UDP payload 长度为 504 字节
 
-#### 输入数据
-- **文件格式**: PCAP (Packet Capture)
-- **网络协议**: Ethernet → IPv4 → UDP
-- **UDP 端口**: 443 → 8808
-- **数据载荷**: 1464 字节，以 "STDV" 开头
+### 数据结构
+每个数据包的最后 24 字节包含 CPU 信息：
 
-#### 后 24 字节数据结构
-数据包载荷的最后 24 字节包含 CPU 使用率信息：
+| 字节位置 | 类型 | 说明 |
+|---------|------|------|
+| 0-7 | float64 | CPU 使用率原始值 |
+| 8-15 | int64 | Busy 时间 |
+| 16-23 | int64 | Idle 时间 |
 
-| 字节位置 | 数据类型 | 说明 |
-|---------|---------|------|
-| 0-7     | double (float64) | CPU 使用率原始值（小端序） |
-| 8-15    | int64 | Busy 时间（小端序） |
-| 16-23   | int64 | Idle 时间（小端序） |
-
-**CPU 使用率计算公式**：
+CPU 使用率计算公式：
 ```
 CPU 使用率 = (Busy 时间 / (Busy 时间 + Idle 时间)) × 100%
 ```
 
-#### 输出数据
-- **控制台**: 详细的分析报告
-- **CSV 文件**: `cpu_usage_cpu_data.csv`，包含字段：
-  - packet_num: 数据包序号
-  - timestamp: 时间戳
-  - cpu_usage: CPU 使用率（%）
-  - busy_time: Busy 时间
-  - idle_time: Idle 时间
-
-### 示例输出
+## 命令行选项
 
 ```
-CPU 使用率统计:
-  最小值: 15.18%
-  最大值: 98.76%
-  平均值: 45.32%
-  中位数: 39.27%
+python3 pcap2excel.py <pcap文件> [输出文件] [选项]
 
-前 20 个数据包的 CPU 使用率:
-  包序号        时间戳                  CPU 使用率
-  ---------- -------------------- ---------------
-  1          1763684906.627354    16.05%
-  2          1763684906.627758    29.26%
-  3          1763684906.627803    32.75%
-  ...
+选项:
+  --csv              生成 CSV 格式（默认生成 Excel）
+  --count N          只分析前 N 个匹配的数据包
+  --range START END  分析第 START 到第 END 个数据包
+```
+
+## 示例
+
+```bash
+# 查看帮助
+python3 pcap2excel.py
+
+# 分析所有数据包
+python3 pcap2excel.py file_name.pcap --csv
+
+# 只分析前 10 个
+python3 pcap2excel.py file_name.pcap --count 10 --csv
+
+# 分析第 5 到第 15 个
+python3 pcap2excel.py file_name.pcap --range 5 15
+
+# 生成带图表的 Excel
+python3 pcap2excel.py file_name.pcap result.xlsx
 ```

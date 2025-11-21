@@ -65,12 +65,30 @@ def extract_cpu_data(raw_data):
     return None
 
 
-def read_pcap(filename, target_payload_length=504):
-    """读取 PCAP 文件并提取 CPU 数据"""
+def read_pcap(filename, target_payload_length=504, start_index=None, end_index=None):
+    """读取 PCAP 文件并提取 CPU 数据
+
+    Args:
+        filename: PCAP 文件路径
+        target_payload_length: 目标 UDP payload 长度（默认 504）
+        start_index: 开始索引（从 1 开始），None 表示从第一个开始
+        end_index: 结束索引（包含），None 表示到最后一个
+    """
     print(f"正在读取 PCAP 文件: {filename}")
-    print(f"只分析 UDP payload 长度为 {target_payload_length} 字节的数据包\n")
+    print(f"只分析 UDP payload 长度为 {target_payload_length} 字节的数据包")
+
+    if start_index is not None or end_index is not None:
+        range_str = f"第 {start_index or 1} 个"
+        if end_index:
+            range_str += f" 到第 {end_index} 个"
+        else:
+            range_str += " 到最后"
+        print(f"分析范围: {range_str}\n")
+    else:
+        print(f"分析范围: 所有匹配的数据包\n")
 
     cpu_data = []
+    all_valid_data = []  # 先收集所有有效数据
 
     with open(filename, 'rb') as f:
         # 读取 PCAP 文件头
@@ -102,11 +120,20 @@ def read_pcap(filename, target_payload_length=504):
                     if udp and udp['payload_length'] == target_payload_length:
                         data = extract_cpu_data(udp['payload'])
                         if data:
-                            data['number'] = len(cpu_data) + 1
-                            cpu_data.append(data)
-                            print(f"  找到第 {len(cpu_data)} 个有效数据包 (总第 {packet_count} 个数据包)")
+                            all_valid_data.append(data)
 
-    print(f"\n完成！总共处理 {packet_count} 个数据包，提取到 {len(cpu_data)} 个 CPU 数据点\n")
+    # 应用范围过滤
+    start = (start_index - 1) if start_index else 0
+    end = end_index if end_index else len(all_valid_data)
+
+    cpu_data = all_valid_data[start:end]
+
+    # 重新编号
+    for idx, data in enumerate(cpu_data, start=1):
+        data['number'] = idx
+
+    print(f"完成！总共处理 {packet_count} 个数据包，找到 {len(all_valid_data)} 个匹配数据包")
+    print(f"提取 {len(cpu_data)} 个 CPU 数据点进行分析\n")
     return cpu_data
 
 
@@ -163,6 +190,7 @@ def export_to_excel(cpu_data, output_file):
     chart.x_axis.title = 'Data Point Number'
     chart.height = 15
     chart.width = 30
+
 
     data_ref = Reference(ws, min_col=2, min_row=1, max_row=len(cpu_data) + 1)
     category_ref = Reference(ws, min_col=1, min_row=2, max_row=len(cpu_data) + 1)
@@ -237,13 +265,26 @@ def main():
         print("PCAP to Excel 转换工具")
         print("="*60)
         print("\n用法:")
-        print("  python3 pcap2excel.py <pcap文件路径> [输出文件名]")
+        print("  python3 pcap2excel.py <pcap文件路径> [输出文件名] [选项]")
         print("\n示例:")
+        print("  # 分析所有数据包（默认）")
         print("  python3 pcap2excel.py cpu_usage.pcap")
+        print("")
+        print("  # 只分析前 3 个数据包")
+        print("  python3 pcap2excel.py cpu_usage.pcap --count 3")
+        print("")
+        print("  # 分析第 2 到第 4 个数据包")
+        print("  python3 pcap2excel.py cpu_usage.pcap --range 2 4")
+        print("")
+        print("  # 指定输出文件名")
         print("  python3 pcap2excel.py data.pcap output.xlsx")
-        print("  python3 pcap2excel.py data.pcap output.csv --csv")
+        print("")
+        print("  # 导出为 CSV 格式")
+        print("  python3 pcap2excel.py data.pcap --csv")
         print("\n选项:")
-        print("  --csv    导出为 CSV 格式（无需安装 openpyxl）")
+        print("  --csv              导出为 CSV 格式（无需安装 openpyxl）")
+        print("  --count N          只分析前 N 个匹配的数据包")
+        print("  --range START END  分析第 START 到第 END 个数据包（包含）")
         sys.exit(1)
 
     pcap_file = sys.argv[1]
@@ -253,12 +294,47 @@ def main():
         print(f"错误: 文件不存在: {pcap_file}")
         sys.exit(1)
 
-    # 确定输出文件名和格式
+    # 解析参数
     use_csv = '--csv' in sys.argv
+    start_index = None
+    end_index = None
 
-    if len(sys.argv) >= 3 and not sys.argv[2].startswith('--'):
-        output_file = sys.argv[2]
-    else:
+    # 检查 --count 参数
+    if '--count' in sys.argv:
+        idx = sys.argv.index('--count')
+        if idx + 1 < len(sys.argv):
+            try:
+                count = int(sys.argv[idx + 1])
+                start_index = 1
+                end_index = count
+            except ValueError:
+                print(f"错误: --count 参数必须是数字")
+                sys.exit(1)
+
+    # 检查 --range 参数
+    if '--range' in sys.argv:
+        idx = sys.argv.index('--range')
+        if idx + 2 < len(sys.argv):
+            try:
+                start_index = int(sys.argv[idx + 1])
+                end_index = int(sys.argv[idx + 2])
+            except ValueError:
+                print(f"错误: --range 参数必须是两个数字")
+                sys.exit(1)
+
+    # 确定输出文件名
+    output_file = None
+    for i, arg in enumerate(sys.argv[2:], start=2):
+        if not arg.startswith('--') and i > 1:
+            # 检查前一个参数是否是选项
+            if i > 2 and sys.argv[i-1] in ['--count', '--range']:
+                continue
+            if i > 3 and sys.argv[i-2] == '--range':
+                continue
+            output_file = arg
+            break
+
+    if not output_file:
         base_name = os.path.splitext(os.path.basename(pcap_file))[0]
         output_file = f"{base_name}_analysis.{'csv' if use_csv else 'xlsx'}"
 
@@ -275,7 +351,7 @@ def main():
 
     # 读取 PCAP 文件
     try:
-        cpu_data = read_pcap(pcap_file)
+        cpu_data = read_pcap(pcap_file, start_index=start_index, end_index=end_index)
     except Exception as e:
         print(f"错误: 无法读取 PCAP 文件: {e}")
         sys.exit(1)
