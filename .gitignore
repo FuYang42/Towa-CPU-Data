@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# PCAP files (optional - uncomment if you don't want to track pcap files)
+# *.pcap
+# *.pcapng
+
+# Generated output files
+*.csv
+*.xlsx
+!example_*.csv
+!example_*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db
