@@ -33,7 +33,8 @@ def parse_ip(data):
 def parse_udp(data):
     if len(data) < 8:
         return None
-    return {'payload': data[8:]}
+    payload = data[8:]
+    return {'payload': payload, 'payload_length': len(payload)}
 
 
 def extract_cpu_data(raw_data):
@@ -64,9 +65,10 @@ def extract_cpu_data(raw_data):
     return None
 
 
-def read_pcap(filename):
+def read_pcap(filename, target_payload_length=504):
     """读取 PCAP 文件并提取 CPU 数据"""
     print(f"正在读取 PCAP 文件: {filename}")
+    print(f"只分析 UDP payload 长度为 {target_payload_length} 字节的数据包\n")
 
     cpu_data = []
 
@@ -97,16 +99,14 @@ def read_pcap(filename):
                 ip = parse_ip(eth['payload'])
                 if ip and ip['protocol'] == 17:
                     udp = parse_udp(ip['payload'])
-                    if udp:
+                    if udp and udp['payload_length'] == target_payload_length:
                         data = extract_cpu_data(udp['payload'])
                         if data:
                             data['number'] = len(cpu_data) + 1
                             cpu_data.append(data)
+                            print(f"  找到第 {len(cpu_data)} 个有效数据包 (总第 {packet_count} 个数据包)")
 
-            if packet_count % 1000 == 0:
-                print(f"  已处理 {packet_count} 个数据包，找到 {len(cpu_data)} 个有效数据...")
-
-    print(f"完成！总共处理 {packet_count} 个数据包，提取到 {len(cpu_data)} 个 CPU 数据点\n")
+    print(f"\n完成！总共处理 {packet_count} 个数据包，提取到 {len(cpu_data)} 个 CPU 数据点\n")
     return cpu_data
 
 
