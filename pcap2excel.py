@@ -236,6 +236,8 @@ def export_to_excel(cpu_data, output_file):
     chart.x_axis.delete = False
     chart.x_axis.tickLblPos = "low"
     chart.x_axis.numFmt = 'General'
+    chart.x_axis.tickLblSkip = 5  # 每隔5个显示一次刻度标签
+    chart.x_axis.tickMarkSkip = 5  # 每隔5个显示一次刻度线
 
     # 增大X轴刻度数值字体
     chart.x_axis.txPr = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1400)))])  # 字号14pt
@@ -271,6 +273,8 @@ def export_to_excel(cpu_data, output_file):
     chart2.x_axis.delete = False
     chart2.x_axis.tickLblPos = "low"
     chart2.x_axis.numFmt = 'General'
+    chart2.x_axis.tickLblSkip = 5  # 每隔5个显示一次刻度标签
+    chart2.x_axis.tickMarkSkip = 5  # 每隔5个显示一次刻度线
 
     # 增大X轴刻度数值字体
     chart2.x_axis.txPr = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1400)))])
