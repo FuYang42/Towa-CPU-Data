@@ -142,6 +142,8 @@ def export_to_excel(cpu_data, output_file):
     try:
         from openpyxl import Workbook
         from openpyxl.chart import LineChart, Reference
+        from openpyxl.chart.text import RichText
+        from openpyxl.drawing.text import Paragraph, ParagraphProperties, CharacterProperties
         from openpyxl.styles import Font, Alignment, PatternFill
     except ImportError:
         print("错误: 需要安装 openpyxl 库")
@@ -182,15 +184,61 @@ def export_to_excel(cpu_data, output_file):
     ws.column_dimensions['D'].width = 18
     ws.column_dimensions['E'].width = 25
 
+    # 分析 CPU 数据，智能确定纵坐标范围
+    cpu_values = [d['cpu_usage'] for d in cpu_data]
+    min_cpu = min(cpu_values)
+    max_cpu = max(cpu_values)
+    cpu_range = max_cpu - min_cpu
+
+    # 判断数据模式并设置合适的纵坐标范围
+    if cpu_range < 10:
+        # 小波动模式（如16%左右波动）：使用更大的纵坐标范围，让线看起来平缓
+        y_min = max(0, min_cpu - 15)
+        y_max = min(100, max_cpu + 15)
+        print(f"检测到小波动模式 (范围: {cpu_range:.2f}%)，使用宽纵坐标范围 [{y_min:.1f}%, {y_max:.1f}%] 以显示平缓趋势")
+    else:
+        # On-Off 模式或大波动：使用适中的纵坐标范围，体现波动
+        margin = cpu_range * 0.2  # 上下各留20%的边距
+        y_min = max(0, min_cpu - margin)
+        y_max = min(100, max_cpu + margin)
+        print(f"检测到波动模式 (范围: {cpu_range:.2f}%)，使用适中纵坐标范围 [{y_min:.1f}%, {y_max:.1f}%] 以体现波动")
+
     # 创建 CPU 使用率图表
     chart = LineChart()
     chart.title = "CPU Usage Over Time"
-    chart.style = 10
-    chart.y_axis.title = 'CPU Usage (%)'
-    chart.x_axis.title = 'Data Point Number'
-    chart.height = 15
-    chart.width = 30
+    chart.height = 12  # 缩小图表高度
+    chart.width = 20   # 缩小图表宽度
 
+    # 隐藏图例
+    chart.legend = None
+
+    # 设置纵坐标（Y轴）
+    chart.y_axis.title = 'CPU Usage (%)'
+    chart.y_axis.scaling.min = y_min
+    chart.y_axis.scaling.max = y_max
+    chart.y_axis.delete = False
+    chart.y_axis.tickLblPos = "nextTo"
+
+    # 增大Y轴刻度数值字体
+    chart.y_axis.txPr = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1400)))])  # 字号14pt
+
+    # 设置主要网格线间隔
+    if cpu_range < 10:
+        chart.y_axis.majorUnit = 5  # 小波动时使用5%间隔
+    else:
+        chart.y_axis.majorUnit = 10  # 大波动时使用10%间隔
+
+    # 显示Y轴刻度数值
+    chart.y_axis.numFmt = '0.00'
+
+    # 设置横坐标（X轴）
+    chart.x_axis.title = 'Sample Number'
+    chart.x_axis.delete = False
+    chart.x_axis.tickLblPos = "low"
+    chart.x_axis.numFmt = 'General'
+
+    # 增大X轴刻度数值字体
+    chart.x_axis.txPr = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1400)))])  # 字号14pt
 
     data_ref = Reference(ws, min_col=2, min_row=1, max_row=len(cpu_data) + 1)
     category_ref = Reference(ws, min_col=1, min_row=2, max_row=len(cpu_data) + 1)
@@ -199,17 +247,33 @@ def export_to_excel(cpu_data, output_file):
     chart.set_categories(category_ref)
     chart.series[0].smooth = True
     chart.series[0].graphicalProperties.line.solidFill = "4472C4"
+    chart.series[0].graphicalProperties.line.width = 25000  # 加粗线条
 
-    ws.add_chart(chart, "G2")
+    ws.add_chart(chart, "G2")  # 调整位置
 
     # 创建 Busy/Idle 对比图
     chart2 = LineChart()
     chart2.title = "Busy Time vs Idle Time"
-    chart2.style = 12
-    chart2.y_axis.title = 'Time'
-    chart2.x_axis.title = 'Data Point Number'
-    chart2.height = 15
-    chart2.width = 30
+    chart2.height = 12  # 缩小图表高度
+    chart2.width = 20   # 缩小图表宽度
+
+    # 设置Y轴
+    chart2.y_axis.title = 'Time (ns)'
+    chart2.y_axis.delete = False
+    chart2.y_axis.tickLblPos = "nextTo"
+    chart2.y_axis.numFmt = '#,##0'  # 显示带千位分隔符的整数格式
+
+    # 增大Y轴刻度数值字体
+    chart2.y_axis.txPr = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1400)))])
+
+    # 设置X轴
+    chart2.x_axis.title = 'Sample Number'
+    chart2.x_axis.delete = False
+    chart2.x_axis.tickLblPos = "low"
+    chart2.x_axis.numFmt = 'General'
+
+    # 增大X轴刻度数值字体
+    chart2.x_axis.txPr = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1400)))])
 
     busy_ref = Reference(ws, min_col=3, min_row=1, max_row=len(cpu_data) + 1)
     idle_ref = Reference(ws, min_col=4, min_row=1, max_row=len(cpu_data) + 1)
@@ -222,8 +286,10 @@ def export_to_excel(cpu_data, output_file):
     chart2.series[1].graphicalProperties.line.solidFill = "70AD47"
     chart2.series[0].smooth = True
     chart2.series[1].smooth = True
+    chart2.series[0].graphicalProperties.line.width = 25000
+    chart2.series[1].graphicalProperties.line.width = 25000
 
-    ws.add_chart(chart2, "G32")
+    ws.add_chart(chart2, "G28")  # 调整位置，与第一个图表分开
 
     # 保存文件
     wb.save(output_file)
