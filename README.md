@@ -4,6 +4,16 @@ PCAP 文件 CPU 使用率分析工具
 
 ## 快速开始
 
+### 推荐工作流程
+
+```bash
+# 步骤 1: 分析 PCAP 文件，生成 CSV 数据
+python3 pcap2excel.py file_name.pcap --csv
+
+# 步骤 2: 使用专业绘图工具生成高质量图表（推荐）
+python3 plot_charts.py file_name_analysis.csv
+```
+
 ### 基本用法
 
 ```bash
@@ -32,11 +42,15 @@ python3 pcap2excel.py file_name.pcap output.xlsx
 - Python 3.6+
 - CSV 模式：无需额外库
 - Excel 模式：需要安装 openpyxl
+- 图表绘制：需要安装 matplotlib
 
 ```bash
-# 安装 openpyxl（仅 Excel 模式需要）
-sudo apt install python3-pip
-pip3 install openpyxl
+# 安装所有依赖（推荐）
+pip3 install -r requirements.txt
+
+# 或者单独安装
+pip3 install openpyxl      # Excel 模式需要
+pip3 install matplotlib    # 绘制图表需要
 ```
 
 ## 输出格式
@@ -51,9 +65,16 @@ pip3 install openpyxl
 | Idle Time | CPU 空闲时间 |
 | Busy Time + Idle Time | 总时间 |
 
-Excel 模式会自动生成两个图表：
-- CPU 使用率变化趋势图
-- Busy Time vs Idle Time 对比图
+### 图表生成
+
+使用 `plot_charts.py` 生成专业图表：
+- 基于 matplotlib，完全控制布局
+- 生成 300 DPI 高清 PNG 图表
+- 标题和坐标轴完美分离，无重叠问题
+- 输出文件：
+  - `cpu_usage_chart.png` - CPU 使用率图表
+  - `busy_idle_chart.png` - Busy/Idle 时间对比图表
+  - `combined_charts.png` - 组合图表（推荐用于报告）
 
 ## 数据格式说明
 
@@ -89,6 +110,8 @@ python3 pcap2excel.py <pcap文件> [输出文件] [选项]
 
 ## 示例
 
+### 数据分析示例
+
 ```bash
 # 查看帮助
 python3 pcap2excel.py
@@ -105,3 +128,23 @@ python3 pcap2excel.py file_name.pcap --range 5 15
 # 生成带图表的 Excel
 python3 pcap2excel.py file_name.pcap result.xlsx
 ```
+
+### 图表生成示例
+
+```bash
+# 从 CSV 文件生成图表（推荐）
+python3 plot_charts.py cpu_test_analysis.csv
+
+# 完整工作流程
+python3 pcap2excel.py cpu_test.pcap --csv
+python3 plot_charts.py cpu_test_analysis.csv
+# 生成的图表: cpu_usage_chart.png, busy_idle_chart.png, combined_charts.png
+```
+
+## 项目文件说明
+
+| 文件 | 功能 | 依赖库 |
+|------|------|--------|
+| `pcap2excel.py` | PCAP 文件解析，生成 CSV/Excel 数据表 | 无（CSV模式）/ openpyxl（Excel模式） |
+| `plot_charts.py` | 从 CSV 生成高质量图表 | matplotlib |
+| `requirements.txt` | Python 依赖库列表 | - |
